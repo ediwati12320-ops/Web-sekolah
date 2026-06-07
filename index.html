@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ulangan SMP Online</title>
+<style>
+body{font-family:Arial;max-width:600px;margin:20px auto;padding:15px;background:#f4f4f4}
+.box{background:white;padding:20px;border-radius:10px;box-shadow:0 2px 5px #ccc}
+input,button{padding:10px;margin:5px 0;width:100%;border-radius:5px;border:1px solid #ddd}
+button{background:#2196F3;color:white;border:none;cursor:pointer}
+button:hover{background:#1976D2}
+.soal{margin:15px 0;padding:10px;border-left:3px solid #2196F3;background:#f9f9f9}
+.panel-link{position:fixed;bottom:10px;right:10px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="box" id="formNama">
+  <h2>Masuk Ulangan</h2>
+  <input type="text" id="nama" placeholder="Nama Lengkap">
+  <input type="text" id="kelas" placeholder="Kelas 7A/8B">
+  <button onclick="mulai()">Mulai Kerjakan</button>
+</div>
+
+<div class="box" id="soalBox" style="display:none">
+  <h3>Halo <span id="namaSiswa"></span></h3>
+  <div id="listSoal"></div>
+  <button onclick="kumpul()">Kumpulkan Jawaban</button>
+</div>
+
+<div class="box" id="hasilBox" style="display:none">
+  <h2>Selesai!</h2>
+  <p>Nama: <span id="hasilNama"></span></p>
+  <p>Kelas: <span id="hasilKelas"></span></p>
+  <h3>Nilai kamu: <span id="nilai"></span>/100</h3>
+  <p>Jawaban udah masuk ke panel guru</p>
+</div>
+
+<a href="?panel=guru123" class="panel-link">Panel Guru</a>
+
+<script>
+const soal = [
+  {q:"Ibukota Indonesia adalah?", a:["Jakarta","Bandung","Surabaya"], benar:0},
+  {q:"2 + 2 x 2 =?", a:["4","6","8"], benar:1},
+  {q:"Hewan yang bisa terbang?", a:["Kucing","Burung","Ikan"], benar:1},
+  {q:"1 Jam =... menit", a:["60","100","24"], benar:0},
+  {q:"Warna bendera Indonesia?", a:["Merah Putih","Biru Putih","Hijau Putih"], benar:0}
+];
+
+let nama, kelas, jawaban = [];
+
+function mulai(){
+  nama = document.getElementById('nama').value;
+  kelas = document.getElementById('kelas').value;
+  if(!nama ||!kelas) return alert('Isi nama + kelas dulu');
+
+  document.getElementById('formNama').style.display='none';
+  document.getElementById('soalBox').style.display='block';
+  document.getElementById('namaSiswa').innerText = nama;
+
+  let html = '';
+  soal.forEach((s,i)=>{
+    html += `<div class="soal"><b>${i+1}. ${s.q}</b><br>`;
+    s.a.forEach((opt,j)=>{
+      html += `<label><input type="radio" name="s${i}" value="${j}"> ${opt}</label><br>`;
+    });
+    html += `</div>`;
+  });
+  document.getElementById('listSoal').innerHTML = html;
+}
+
+function kumpul(){
+  let benar = 0;
+  soal.forEach((s,i)=>{
+    let pilih = document.querySelector(`input[name="s${i}"]:checked`);
+    jawaban[i] = pilih? parseInt(pilih.value) : -1;
+    if(jawaban[i] == s.benar) benar++;
+  });
+
+  let nilai = (benar/soal.length)*100;
+
+  // Simpen ke localStorage = "database" kita
+  let data = JSON.parse(localStorage.getItem('nilaiSMP') || '[]');
+  data.push({nama,kelas,nilai,tanggal:new Date().toLocaleString(),jawaban});
+  localStorage.setItem('nilaiSMP', JSON.stringify(data));
+
+  document.getElementById('soalBox').style.display='none';
+  document.getElementById('hasilBox').style.display='block';
+  document.getElementById('hasilNama').innerText = nama;
+  document.getElementById('hasilKelas').innerText = kelas;
+  document.getElementById('nilai').innerText = nilai;
+}
+
+// Cek kalau buka link panel
+if(window.location.search.includes('panel=guru123')){
+  bukaPanel();
+}
+
+function bukaPanel(){
+  let data = JSON.parse(localStorage.getItem('nilaiSMP') || '[]');
+  let html = `<h2>Panel Guru - Nilai Siswa</h2>
+  <button onclick="hapusData()">Hapus Semua Data</button>
+  <table border="1" width="100%" style="margin-top:10px">
+  <tr><th>No</th><th>Nama</th><th>Kelas</th><th>Nilai</th><th>Waktu</th></tr>`;
+
+  data.forEach((d,i)=>{
+    html += `<tr><td>${i+1}</td><td>${d.nama}</td><td>${d.kelas}</td><td>${d.nilai}</td><td>${d.tanggal}</td></tr>`;
+  });
+  html += `</table><br><a href="./">Kembali ke Soal</a>`;
+
+  document.body.innerHTML = `<div class="box">${html}</div>`;
+}
+
+function hapusData(){
+  if(confirm('Yakin hapus semua nilai?')) {
+    localStorage.removeItem('nilaiSMP');
+    location.reload();
+  }
+}
+</script>
+</body>
+</html>
